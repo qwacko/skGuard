@@ -1,2 +1,2 @@
 // Reexport your entry components here
-export {  skGuard } from './authGuard.js';
+export { skGuard, RouteConfig, RouteConfigObjectType } from './authGuard.js';
