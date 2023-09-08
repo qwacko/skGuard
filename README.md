@@ -1,58 +1,81 @@
-# create-svelte
+# skGuard
 
-Everything you need to build a Svelte library, powered by [`create-svelte`](https://github.com/sveltejs/kit/tree/master/packages/create-svelte).
+skGuard is a powerful route guarding utility for SvelteKit applications. It provides a flexible mechanism to guard routes based on custom validation logic, allowing developers to easily manage route access based on various conditions.
 
-Read more about creating a library [in the docs](https://kit.svelte.dev/docs/packaging).
+## Features
 
-## Creating a project
+- Route-specific Checks: Define custom checks for each route in your application.
+- Custom Validation: Use your own validation logic to determine access.
+- Allow and Block Lists: Specify routes that should always be allowed or blocked.
+- Default Behaviors: Set default behaviors for routes not explicitly configured.
+- Support for POST Requests: Define custom behaviors for POST requests.
 
-If you're seeing this, you've probably already done this step. Congrats!
+## Installation
 
-```bash
-# create a new project in the current directory
-npm create svelte@latest
-
-# create a new project in my-app
-npm create svelte@latest my-app
-```
-
-## Developing
-
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
+Using npm:
 
 ```bash
-npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
+npm install skGuard
 ```
 
-Everything inside `src/lib` is part of your library, everything inside `src/routes` can be used as a showcase or preview app.
+## Usage
 
-## Building
+Import the combinedAuthGuard function:
 
-To build your library:
-
-```bash
-npm run package
+```javascript
+import { combinedAuthGuard } from 'skGuard';
 ```
 
-To create a production version of your showcase app:
+Define your route configurations and validation logic:
 
-```bash
-npm run build
+```javascript
+const routeConfig = {
+	'/protected-route': {
+		check: (data) => (data.user ? null : '/login')
+	}
+};
+
+const validation = (requestData) => {
+	return {
+		user: requestData.locals.user
+	};
+};
 ```
 
-You can preview the production build with `npm run preview`.
+Create the guard:
 
-> To deploy your app, you may need to install an [adapter](https://kit.svelte.dev/docs/adapters) for your target environment.
-
-## Publishing
-
-Go into the `package.json` and give your package the desired name through the `"name"` option. Also consider adding a `"license"` field and point it to a `LICENSE` file which you can create from a template (one popular option is the [MIT license](https://opensource.org/license/mit/)).
-
-To publish your library to [npm](https://www.npmjs.com):
-
-```bash
-npm publish
+```javascript
+const guard = combinedAuthGuard({
+	routeConfig,
+	validation
+});
 ```
+
+Use the guard in your routes:
+TBC
+
+## API
+
+### combinedAuthGuard
+
+The main function of skGuard. It takes in a configuration object and returns a function to guard routes.
+
+Parameters
+
+- routeConfig: Configuration object defining checks for each route.
+- validation: Function to validate the request data.
+- allowList: (Optional) List of routes that should always be allowed.
+- blockList: (Optional) List of routes that should always be blocked.
+- defaultAllow: (Optional) Default behavior when a route is not found in the config (true to allow, false to block).
+- defaultBlockTarget: (Optional) Default redirect target when a route is blocked.
+- routeNotFoundMessage: (Optional) Error message when a route is not found in the config.
+- defaultAllowPOST: (Optional) Default behavior for POST requests when not explicitly configured.
+- postNotAllowedMessage: (Optional) Error message for disallowed POST requests.
+
+## Contributing
+
+We welcome contributions to skGuard! If you find a bug or have a feature request, please open an issue. If you'd like to contribute code, please open a pull request.
+
+## License
+
+MIT
