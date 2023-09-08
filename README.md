@@ -13,10 +13,10 @@ skGuard is a powerful route guarding utility for SvelteKit applications. It prov
 ## Installation
 
 ```bash
-#npm
+# npm
 npm install skGuard
 
-#pnpm
+# pnpm
 pnpm add skGuard
 
 
