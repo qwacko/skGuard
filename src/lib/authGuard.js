@@ -13,7 +13,7 @@ const { error, redirect } = require('@sveltejs/kit');
  */
 
 /**
- *  The `combinedAuthGuard` function provides a mechanism to guard routes based on custom validation logic.
+ *  The `skGuard` function provides a mechanism to guard routes based on custom validation logic.
  * It takes in a configuration object that defines route-specific checks, a validation function, and other optional parameters.
  * The function returns another function that, when invoked with a request event, determines if access should be granted or denied.
  * If access is denied, it can either redirect the user to another route or throw an error.
@@ -36,7 +36,7 @@ const { error, redirect } = require('@sveltejs/kit');
  * @param {string} [params.postNotAllowedMessage='POST not allowed for this request.']
  * @returns {(requestData: RequestEvent<Partial<Record<string, string>>, U>, customValidation?: (data: VReturn) => string | undefined | null) => any}
  */
-const combinedAuthGuard = ({
+const skGuard = ({
 	routeConfig,
 	validation,
 	allowList,
@@ -122,4 +122,4 @@ const combinedAuthGuard = ({
 	return R;
 };
 
-module.exports = { combinedAuthGuard };
+module.exports = { skGuard };

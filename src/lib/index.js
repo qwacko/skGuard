@@ -1,2 +1,2 @@
 // Reexport your entry components here
-export { combinedAuthGuard } from './authGuard.js';
+export {  skGuard } from './authGuard.js';

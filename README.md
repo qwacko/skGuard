@@ -24,10 +24,10 @@ pnpm add skGuard
 
 ## Usage
 
-Import the combinedAuthGuard function:
+Import the skGuard function:
 
 ```javascript
-import { combinedAuthGuard } from 'skGuard';
+import { skGuard } from 'skGuard';
 ```
 
 Define your route configurations and validation logic:
@@ -49,7 +49,7 @@ const validation = (requestData) => {
 Create the guard:
 
 ```javascript
-const guard = combinedAuthGuard({
+const guard = skGuard({
 	routeConfig,
 	validation
 });
@@ -60,7 +60,7 @@ TBC
 
 ## API
 
-### combinedAuthGuard
+### skGuard
 
 The main function of skGuard. It takes in a configuration object and returns a function to guard routes.
 
