@@ -122,4 +122,4 @@ const skGuard = ({
 	return R;
 };
 
-module.exports = { skGuard };
+export default skGuard;
