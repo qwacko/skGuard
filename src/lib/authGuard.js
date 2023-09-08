@@ -1,6 +1,10 @@
 const { error, redirect } = require('@sveltejs/kit');
 
 /**
+ * @typedef {import('@sveltejs/kit').RequestEvent} RequestEvent
+ */
+
+/**
  * @template UserValidationOutput
  * @typedef {Object} RouteConfig
  * @property {(data: UserValidationOutput) => (string | undefined | null)} check
