@@ -31,7 +31,13 @@ export const skGuard = <
 	defaultBlockTarget,
 	routeNotFoundMessage = 'No route config found for this route.',
 	defaultAllowPOST = false,
-	postNotAllowedMessage = 'POST not allowed for this request.'
+	postNotAllowedMessage = 'POST not allowed for this request.',
+	redirectFunc = (status, location) => {
+		throw redirect(status, location);
+	},
+	errorFunc = (status, body) => {
+		throw error(status, body);
+	}
 }: {
 	routeConfig: T;
 	validation: VType;
@@ -42,6 +48,11 @@ export const skGuard = <
 	routeNotFoundMessage?: string;
 	defaultAllowPOST?: boolean;
 	postNotAllowedMessage?: string;
+	redirectFunc?(
+		status: 300 | 301 | 302 | 303 | 304 | 305 | 306 | 307 | 308,
+		location: string | URL
+	): any;
+	errorFunc?: (status: number, body: string | { message: string }) => any;
 }) => {
 	const R = <S extends RequestEvent<Partial<Record<string, string>>, U>>(
 		requestData: S,
@@ -53,9 +64,11 @@ export const skGuard = <
 
 		if (blockList && blockList.includes(requestData.route.id)) {
 			if (defaultBlockTarget) {
-				throw redirect(302, defaultBlockTarget);
+				redirectFunc(302, defaultBlockTarget);
+				return requestData;
 			} else {
-				throw error(400, routeNotFoundMessage);
+				errorFunc(400, routeNotFoundMessage);
+				return requestData;
 			}
 		}
 
@@ -65,9 +78,11 @@ export const skGuard = <
 			if (defaultAllow) {
 				return requestData;
 			} else if (!defaultBlockTarget) {
-				throw error(400, routeNotFoundMessage);
+				errorFunc(400, routeNotFoundMessage);
+				return requestData;
 			} else {
-				throw redirect(302, defaultBlockTarget);
+				redirectFunc(302, defaultBlockTarget);
+				return requestData;
 			}
 		}
 
@@ -79,11 +94,13 @@ export const skGuard = <
 			: undefined;
 
 		if (redirectTarget) {
-			throw redirect(302, redirectTarget);
+			redirectFunc(302, redirectTarget);
+			return requestData;
 		}
 
 		if (customValidationResult) {
-			throw redirect(302, customValidationResult);
+			redirectFunc(302, customValidationResult);
+			return requestData;
 		}
 
 		if (requestData.request.method === 'POST') {
@@ -101,7 +118,8 @@ export const skGuard = <
 				if (defaultAllowPOST) {
 					return requestData;
 				} else {
-					throw error(400, postNotAllowedMessage);
+					errorFunc(400, postNotAllowedMessage);
+					return requestData;
 				}
 			}
 
@@ -112,7 +130,8 @@ export const skGuard = <
 				: undefined;
 
 			if (postCheckResult) {
-				throw error(400, postCheckResult);
+				errorFunc(400, postCheckResult);
+				return requestData;
 			}
 		}
 
