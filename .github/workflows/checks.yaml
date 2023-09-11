@@ -1,0 +1,36 @@
+name: Publish Package to npmjs
+on:
+  pull_request:
+    branches:
+      - master
+      - dev
+  push:
+    branches:
+      - master
+      - dev
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: master
+      # Setup .npmrc file to publish to npm
+      - uses: actions/setup-node@v3
+        name: Install node
+        with:
+          node-version: '16.x'
+          registry-url: 'https://registry.npmjs.org'
+
+      - uses: pnpm/action-setup@v2
+        name: Install pnpm
+        with:
+          version: 7
+          run_install: false
+      - run: pnpm i
+        name: Install Dependencies
+      - run: pnpm check
+        name: Typescript Check
+      - run: pnpm test
+        name: run vitest
