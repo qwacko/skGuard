@@ -13,14 +13,13 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
-        with:
-          ref: master
 
       - name: Check version changes
         uses: EndBug/version-check@v1
         id: check
-        # with:
-        #   file-url: https://unpkg.com/skguard@latest/package.json
+        with:
+          file-url: https://unpkg.com/skguard@latest/package.json
+          static-checking: localIsNew
 
       - name: Log when changed
         if: steps.check.outputs.changed == 'true'
