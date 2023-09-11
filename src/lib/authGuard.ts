@@ -7,7 +7,6 @@ export const skGuard = <
 		data: RequestEvent<Partial<Record<string, string>>, U>
 	) => Record<string, string | boolean>,
 	VReturn extends ReturnType<VTypeBackend>,
-	VTypeFrontEnd extends (data: Page<Record<string, string>, string>) => VReturn,
 	AllowList extends string[],
 	BlockList extends string[],
 	T extends RouteConfigObjectType<VReturn>,
@@ -15,7 +14,6 @@ export const skGuard = <
 >({
 	routeConfig,
 	validationBackend,
-	validationFrontEnd,
 	allowList,
 	blockList,
 	defaultAllow = false,
@@ -38,7 +36,6 @@ export const skGuard = <
 }: {
 	routeConfig: T;
 	validationBackend: VTypeBackend;
-	validationFrontEnd: VTypeFrontEnd;
 	allowList?: AllowList;
 	blockList?: BlockList;
 	defaultAllow?: boolean;
@@ -59,6 +56,7 @@ export const skGuard = <
 }) => {
 	const FrontendValidation = <S extends Page<Record<string, string>, string>>(
 		page: S,
+		validation: VReturn,
 		customValidation?: (data: VReturn) => string | undefined | null
 	) => {
 		const validationResults = authGuardCore({
@@ -69,7 +67,7 @@ export const skGuard = <
 			isPOST: false,
 			routeConfig,
 			routeId: page.route.id,
-			validation: validationFrontEnd(page) as VReturn,
+			validation,
 			routeNotFoundMessage,
 			customValidation,
 			urlSearch: page.url?.search,
