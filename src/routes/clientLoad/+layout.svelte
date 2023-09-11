@@ -1,6 +1,8 @@
 <div class="pageLayout">
 	<nav>
-		<a href="/layout/">Root</a><a href="/layout/home">Home</a><a href="/layout/blocked">Blocked</a>
+		<a href="/clientLoad/">Root</a><a href="/clientLoad/home">Home</a><a href="/clientLoad/blocked"
+			>Blocked</a
+		>
 	</nav>
 	<slot />
 </div>
