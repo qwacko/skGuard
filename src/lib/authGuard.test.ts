@@ -98,31 +98,44 @@ const skGuardConfig = {
 	allowList: ['/open', '/loginOpen'],
 	blockList: ['/closed', '/openBlocked'],
 
-	validation: (): ValidationReturn => ({ admin: true, user: false }),
-	redirectFunc: (
+	validationBackend: (): ValidationReturn => ({ admin: true, user: false }),
+	validationFrontEnd: (): ValidationReturn => ({ admin: true, user: false }),
+	redirectFuncBackend: (
 		status: 300 | 301 | 302 | 303 | 304 | 305 | 306 | 307 | 308,
 		location: string | URL
 	) => {
 		throw new Error(`redirectFunc - ${status} - ${location}`);
 	},
-	errorFunc: (status: number, body: string | { message: string }) => {
+	errorFuncBackend: (status: number, body: string | { message: string }) => {
+		throw new Error(`errorFunc - ${status} - ${body}`);
+	},
+	redirectFuncFrontEnd: (
+		status: 300 | 301 | 302 | 303 | 304 | 305 | 306 | 307 | 308,
+		location: string | URL
+	) => {
+		throw new Error(`redirectFunc - ${status} - ${location}`);
+	},
+	errorFuncFrontEnd: (status: number, body: string | { message: string }) => {
 		throw new Error(`errorFunc - ${status} - ${body}`);
 	}
 };
 
-const skGuardWithRoutesAndNoUser = skGuard({
+const [skGuardWithRoutesAndNoUser] = skGuard({
 	...skGuardConfig,
-	validation: () => ({ admin: false, user: false })
+	validationBackend: () => ({ admin: false, user: false }),
+	validationFrontEnd: () => ({ admin: false, user: false })
 });
-const skGuardWithRoutesAndAdmin = skGuard({
+const [skGuardWithRoutesAndAdmin] = skGuard({
 	...skGuardConfig,
-	validation: () => ({ admin: true, user: true })
+	validationBackend: () => ({ admin: true, user: true }),
+	validationFrontEnd: () => ({ admin: true, user: true })
 });
-const skGuardWithRoutesAndUser = skGuard({
+const [skGuardWithRoutesAndUser] = skGuard({
 	...skGuardConfig,
-	validation: () => ({ admin: false, user: true })
+	validationBackend: () => ({ admin: false, user: true }),
+	validationFrontEnd: () => ({ admin: false, user: true })
 });
-const skGuardWithRoutesAndAllowed = skGuard({ ...skGuardConfig, defaultAllow: true });
+const [skGuardWithRoutesAndAllowed] = skGuard({ ...skGuardConfig, defaultAllow: true });
 
 describe('Auth Guard Testing', () => {
 	it("Throws Error If Route Doesn't Exist", () => {

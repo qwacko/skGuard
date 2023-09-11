@@ -63,12 +63,12 @@ export const authGuardCore = <ValidType extends Record<string, boolean | string>
 	const redirectTarget = currentRouteConfig.check(validationResult);
 	const customValidationResult = customValidation ? customValidation(validationResult) : undefined;
 
-	if (redirectTarget && !isPOST) {
-		return { type: 'redirect', redirectAddress: redirectTarget };
-	}
-
 	if (customValidationResult && !isPOST) {
 		return { type: 'redirect', redirectAddress: customValidationResult };
+	}
+
+	if (redirectTarget && !isPOST) {
+		return { type: 'redirect', redirectAddress: redirectTarget };
 	}
 
 	if (isPOST) {
