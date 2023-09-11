@@ -1,0 +1,24 @@
+name: Check Version Number Before Release
+on:
+  release:
+    types: [created]
+  push:
+  pull:
+
+jobs:
+  check:
+    name: Check Version Number
+    runs-on: ubuntu-latest
+    if: contains(github.ref, 'master') # Publish it only if the push comes from the master branch
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+        with:
+          ref: master
+
+      - name: Check version changes
+        uses: EndBug/version-check@v1
+        id: check
+        with:
+          file-url: https://unpkg.com/skguard@latest/package.json
