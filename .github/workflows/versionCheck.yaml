@@ -9,7 +9,6 @@ jobs:
   check:
     name: Check Version Number
     runs-on: ubuntu-latest
-    if: contains(github.ref, 'master') # Publish it only if the push comes from the master branch
 
     steps:
       - name: Checkout repository
