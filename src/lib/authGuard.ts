@@ -13,6 +13,110 @@ export type RouteConfigObjectType<UserValidationOutput extends Record<string, bo
 	[key: string]: RouteConfig<UserValidationOutput>;
 };
 
+type CoreReturnType =
+	| { type: 'redirect'; redirectAddress: string }
+	| { type: 'error'; errorMessage: string }
+	| { type: 'authorised' };
+
+const skGuardCore = <ValidType extends Record<string, boolean | string>>({
+	allowList,
+	blockList,
+	defaultAllow,
+	defaultBlockTarget,
+	defaultAllowPOST,
+	isPOST,
+	routeId,
+	urlSearch,
+	validation,
+	routeConfig,
+	routeNotFoundMessage,
+	postNotAllowedMessage,
+	customValidation
+}: {
+	allowList: string[];
+	blockList: string[];
+	defaultAllow: boolean;
+	defaultAllowPOST: boolean;
+	defaultBlockTarget: string;
+	routeNotFoundMessage: string;
+	postNotAllowedMessage: string;
+	isPOST: boolean;
+	routeId: string;
+	urlSearch: string | undefined;
+	validation: ValidType;
+	routeConfig: RouteConfigObjectType<ValidType>;
+	customValidation: (input: ValidType) => string | undefined;
+}): CoreReturnType => {
+	if (allowList && allowList.includes(routeId)) {
+		return { type: 'authorised' };
+	}
+
+	if (blockList && blockList.includes(routeId)) {
+		if (defaultBlockTarget && !isPOST) {
+			return { type: 'redirect', redirectAddress: defaultBlockTarget };
+		} else {
+			return { type: 'error', errorMessage: routeNotFoundMessage };
+		}
+	}
+
+	const currentRouteConfig = routeConfig[routeId];
+
+	if (!currentRouteConfig) {
+		if (defaultAllow) {
+			return { type: 'authorised' };
+		} else if (!defaultBlockTarget || isPOST) {
+			return { type: 'error', errorMessage: routeNotFoundMessage };
+		} else {
+			return { type: 'redirect', redirectAddress: defaultBlockTarget };
+		}
+	}
+
+	const validationResult = validation;
+
+	const redirectTarget = currentRouteConfig.check(validationResult);
+	const customValidationResult = customValidation ? customValidation(validationResult) : undefined;
+
+	if (redirectTarget && !isPOST) {
+		return { type: 'redirect', redirectAddress: redirectTarget };
+	}
+
+	if (customValidationResult && !isPOST) {
+		return { type: 'redirect', redirectAddress: customValidationResult };
+	}
+
+	if (isPOST) {
+		const postCheck = currentRouteConfig.POSTCheck
+			? urlSearch
+				? currentRouteConfig.POSTCheck[urlSearch.replace('?/', '')]
+				: currentRouteConfig.POSTCheck['default']
+			: undefined;
+
+		const defaultPostCheck = currentRouteConfig.POSTCheck
+			? currentRouteConfig.POSTCheck['default']
+			: undefined;
+
+		if (!postCheck && !defaultPostCheck) {
+			if (defaultAllowPOST) {
+				return { type: 'authorised' };
+			} else {
+				return { type: 'error', errorMessage: postNotAllowedMessage };
+			}
+		}
+
+		const postCheckResult = postCheck
+			? postCheck(validationResult)
+			: defaultPostCheck
+			? defaultPostCheck(validationResult)
+			: undefined;
+
+		if (postCheckResult) {
+			return { type: 'error', errorMessage: postCheckResult };
+		}
+	}
+
+	return { type: 'authorised' };
+};
+
 export const skGuard = <
 	VType extends (
 		data: RequestEvent<Partial<Record<string, string>>, U>
@@ -54,90 +158,34 @@ export const skGuard = <
 	): any;
 	errorFunc?: (status: number, body: string | { message: string }) => any;
 }) => {
-	const R = <S extends RequestEvent<Partial<Record<string, string>>, U>>(
+	const BackendValidation = <S extends RequestEvent<Partial<Record<string, string>>, U>>(
 		requestData: S,
 		customValidation?: (data: VReturn) => string | undefined | null
 	) => {
-		const isPOST = requestData.request.method === 'POST';
+		const validationResults = skGuardCore({
+			allowList,
+			blockList,
+			defaultAllow,
+			defaultBlockTarget,
+			isPOST: requestData.request.method === 'POST',
+			routeConfig,
+			routeId: requestData.route.id,
+			validation: validation(requestData) as VReturn,
+			routeNotFoundMessage,
+			customValidation,
+			urlSearch: requestData.url?.search,
+			defaultAllowPOST,
+			postNotAllowedMessage
+		});
 
-		if (allowList && allowList.includes(requestData.route.id)) {
-			return requestData;
-		}
-
-		if (blockList && blockList.includes(requestData.route.id)) {
-			if (defaultBlockTarget && !isPOST) {
-				redirectFunc(302, defaultBlockTarget);
-				return requestData;
-			} else {
-				errorFunc(400, routeNotFoundMessage);
-				return requestData;
-			}
-		}
-
-		const currentRouteConfig = routeConfig[requestData.route.id];
-
-		if (!currentRouteConfig) {
-			if (defaultAllow) {
-				return requestData;
-			} else if (!defaultBlockTarget || isPOST) {
-				errorFunc(400, routeNotFoundMessage);
-				return requestData;
-			} else {
-				redirectFunc(302, defaultBlockTarget);
-				return requestData;
-			}
-		}
-
-		const validationResult = validation(requestData) as VReturn;
-
-		const redirectTarget = currentRouteConfig.check(validationResult);
-		const customValidationResult = customValidation
-			? customValidation(validationResult)
-			: undefined;
-
-		if (redirectTarget && !isPOST) {
-			redirectFunc(302, redirectTarget);
-			return requestData;
-		}
-
-		if (customValidationResult && !isPOST) {
-			redirectFunc(302, customValidationResult);
-			return requestData;
-		}
-
-		if (requestData.request.method === 'POST') {
-			const postCheck = currentRouteConfig.POSTCheck
-				? requestData.url.search
-					? currentRouteConfig.POSTCheck[requestData.url.search.replace('?/', '')]
-					: currentRouteConfig.POSTCheck['default']
-				: undefined;
-
-			const defaultPostCheck = currentRouteConfig.POSTCheck
-				? currentRouteConfig.POSTCheck['default']
-				: undefined;
-
-			if (!postCheck && !defaultPostCheck) {
-				if (defaultAllowPOST) {
-					return requestData;
-				} else {
-					errorFunc(400, postNotAllowedMessage);
-					return requestData;
-				}
-			}
-
-			const postCheckResult = postCheck
-				? postCheck(validationResult)
-				: defaultPostCheck
-				? defaultPostCheck(validationResult)
-				: undefined;
-
-			if (postCheckResult) {
-				errorFunc(400, postCheckResult);
-				return requestData;
-			}
+		if (validationResults.type === 'authorised') return requestData;
+		else if (validationResults.type === 'error') {
+			errorFunc(400, validationResults.errorMessage);
+		} else if (validationResults.type === 'redirect') {
+			redirectFunc(302, validationResults.redirectAddress);
 		}
 
 		return requestData;
 	};
-	return R;
+	return BackendValidation;
 };
