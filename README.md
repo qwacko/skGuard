@@ -62,7 +62,7 @@ Create the guard:
 ```javascript
 const {
 	backend: backendGuard,
-	frontend: frintendGuard,
+	frontend: frontendGuard,
 	clientLoad: clientLoadGuard
 } = skGuard({
 	routeConfig,
@@ -87,11 +87,11 @@ export const handle: Handle = async ({ event, resolve }) => {
 Page load functions and actions can be protected by including the backendGuard fuction into the `+page.server.ts` file. This allows for typechecking of routes, or also a custom validation function to be used if data that is only available on a specific route should be used (i.e. route params such as /[id]/ determine whether a specific user should be able to access a page).
 
 ```typescript
-import { authGuard } from '../../authGuardInstance.js';
+import { backendGuard } from '../../authGuardInstance.js';
 
 #Example of using skAuth to guard specific routes.
 export const load = (data) => {
-	authGuard(data, (prevAuth) => {
+	backendGuard(data, (prevAuth) => {
 		if (!prevAuth.user || data.params.id === 'idBlocked') {
 			return '/server/idAllowed';
 		}
@@ -114,10 +114,10 @@ Note: Due to the fact that client side data is inconsitent across pages, the dev
 
 ```svelte
 <script lang="ts">
-	import { authGuardFrontend } from '../authGuardInstance.js';
+	import { frontendGuard } from '../authGuardInstance.js';
 	import { page } from '$app/stores';
 
-	$: authGuardFrontend($page, { user: true });
+	$: frontendGuard($page, { user: true });
 </script>
 ```
 
@@ -128,9 +128,9 @@ import { goto } from '$app/navigation';
 import { skGuard } from '$lib/authGuard.js';
 
 export const {
-	backend: authGuard,
-	frontend: authGuardFrontend,
-	clientLoad: authGuardClientLoad
+	backend: backendGuard,
+	frontend: frontendGuard,
+	clientLoad: clientLoadGuard
 } = skGuard({
 	routeConfig: {
 		...
