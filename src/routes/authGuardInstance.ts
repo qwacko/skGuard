@@ -37,8 +37,21 @@ export const {
 		},
 		'/hooks/home': {
 			check: () => undefined
+		},
+		'/server/blocked': {
+			check: () => '/server'
+		},
+		'/server': {
+			check: () => undefined
+		},
+		'/server/home': {
+			check: () => undefined
+		},
+		'/server/[id]': {
+			check: () => undefined
 		}
 	},
 	validationBackend: () => ({ user: true }),
-	redirectFuncFrontend: (status, location) => goto(location)
+	redirectFuncFrontend: (status, location) => goto(location),
+	errorFuncFrontend: (status, body) => console.log('Auth Error : ', { status, body })
 });
