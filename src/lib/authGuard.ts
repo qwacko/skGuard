@@ -30,10 +30,10 @@ export const skGuard = <
 		throw error(status, body);
 	},
 	redirectFuncFrontend = (status, location) => {
-		throw redirect(status, location);
+		console.log('Redirect Function : ', { status, location });
 	},
 	errorFuncFrontend = (status, body) => {
-		throw error(status, body);
+		console.log('Error Function : ', { status, body });
 	}
 }: {
 	routeConfig: T;
