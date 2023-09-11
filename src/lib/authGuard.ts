@@ -58,12 +58,14 @@ export const skGuard = <
 		requestData: S,
 		customValidation?: (data: VReturn) => string | undefined | null
 	) => {
+		const isPOST = requestData.request.method === 'POST';
+
 		if (allowList && allowList.includes(requestData.route.id)) {
 			return requestData;
 		}
 
 		if (blockList && blockList.includes(requestData.route.id)) {
-			if (defaultBlockTarget) {
+			if (defaultBlockTarget && !isPOST) {
 				redirectFunc(302, defaultBlockTarget);
 				return requestData;
 			} else {
@@ -77,7 +79,7 @@ export const skGuard = <
 		if (!currentRouteConfig) {
 			if (defaultAllow) {
 				return requestData;
-			} else if (!defaultBlockTarget) {
+			} else if (!defaultBlockTarget || isPOST) {
 				errorFunc(400, routeNotFoundMessage);
 				return requestData;
 			} else {
@@ -93,12 +95,12 @@ export const skGuard = <
 			? customValidation(validationResult)
 			: undefined;
 
-		if (redirectTarget) {
+		if (redirectTarget && !isPOST) {
 			redirectFunc(302, redirectTarget);
 			return requestData;
 		}
 
-		if (customValidationResult) {
+		if (customValidationResult && !isPOST) {
 			redirectFunc(302, customValidationResult);
 			return requestData;
 		}

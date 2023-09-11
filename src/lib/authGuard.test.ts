@@ -73,14 +73,16 @@ const skGuardConfig = {
 			check: (data: ValidationReturn) => (data.admin ? undefined : data.user ? '/user' : '/login'),
 			POSTCheck: {
 				default: (data: ValidationReturn) =>
-					data.admin ? undefined : data.user ? '/user' : '/login'
+					data.admin ? undefined : 'Cannot access /admin?/default endpoint'
 			}
 		},
 		'/user': {
 			check: (data: ValidationReturn) => (data.admin || data.user ? undefined : '/login'),
 			POSTCheck: {
-				update: (data: ValidationReturn) => (data.admin || data.user ? undefined : '/login'),
-				remote: (data: ValidationReturn) => (data.admin || data.user ? undefined : '/login')
+				update: (data: ValidationReturn) =>
+					data.admin || data.user ? undefined : 'Cannot access /user?/update endpoint',
+				remove: (data: ValidationReturn) =>
+					data.admin ? undefined : 'Cannot access /user/?remove endpoint'
 			}
 		},
 		'/login': {
@@ -212,4 +214,91 @@ describe('Auth Guard Testing', () => {
 	});
 });
 
-describe('Auth Guard Testing (POST)', () => {});
+describe('Auth Guard Testing (POST)', () => {
+	it('Admin User Can Access /admin - default enpoint', () => {
+		expect(() =>
+			skGuardWithRoutesAndAdmin({
+				...defaultRequestEvent,
+				route: { id: '/admin' },
+				request: { ...defaultRequestEvent.request, method: 'POST' },
+				url: { ...defaultRequestEvent.url, search: '?/anything' }
+			})
+		).not.toThrowError();
+	});
+	it('Admin User Can Access /admin - default enpoint regardless of search terms', () => {
+		expect(() =>
+			skGuardWithRoutesAndAdmin({
+				...defaultRequestEvent,
+				route: { id: '/admin' },
+				request: { ...defaultRequestEvent.request, method: 'POST' },
+				url: { ...defaultRequestEvent.url, search: '?/anything&this=1' }
+			})
+		).not.toThrowError();
+		expect(() =>
+			skGuardWithRoutesAndAdmin({
+				...defaultRequestEvent,
+				route: { id: '/admin' },
+				request: { ...defaultRequestEvent.request, method: 'POST' },
+				url: { ...defaultRequestEvent.url, search: '' }
+			})
+		).not.toThrowError();
+	});
+	it('User Cannot Access /admin - default enpoint', () => {
+		expect(() =>
+			skGuardWithRoutesAndUser({
+				...defaultRequestEvent,
+				route: { id: '/admin' },
+				request: { ...defaultRequestEvent.request, method: 'POST' },
+				url: { ...defaultRequestEvent.url, search: '?/anything' }
+			})
+		).toThrowError('Cannot access /admin?/default endpoint');
+	});
+	it('User Can Access /user?/update endpoint', () => {
+		expect(() =>
+			skGuardWithRoutesAndUser({
+				...defaultRequestEvent,
+				route: { id: '/user' },
+				request: { ...defaultRequestEvent.request, method: 'POST' },
+				url: { ...defaultRequestEvent.url, search: '?/update' }
+			})
+		).not.toThrowError();
+	});
+	it('User Cannot Access /user?/remove endpoint', () => {
+		expect(() =>
+			skGuardWithRoutesAndUser({
+				...defaultRequestEvent,
+				route: { id: '/user' },
+				request: { ...defaultRequestEvent.request, method: 'POST' },
+				url: { ...defaultRequestEvent.url, search: '?/remove' }
+			})
+		).toThrowError('Cannot access /user/?remove endpoint');
+	});
+	it('Admin Can Access all  /user endpoints that exist', () => {
+		expect(() =>
+			skGuardWithRoutesAndAdmin({
+				...defaultRequestEvent,
+				route: { id: '/user' },
+				request: { ...defaultRequestEvent.request, method: 'POST' },
+				url: { ...defaultRequestEvent.url, search: '?/remove' }
+			})
+		).not.toThrowError();
+		expect(() =>
+			skGuardWithRoutesAndAdmin({
+				...defaultRequestEvent,
+				route: { id: '/user' },
+				request: { ...defaultRequestEvent.request, method: 'POST' },
+				url: { ...defaultRequestEvent.url, search: '?/update' }
+			})
+		).not.toThrowError();
+	});
+	it('Admin Cannot Access a nonexistent endpoint', () => {
+		expect(() =>
+			skGuardWithRoutesAndAdmin({
+				...defaultRequestEvent,
+				route: { id: '/user' },
+				request: { ...defaultRequestEvent.request, method: 'POST' },
+				url: { ...defaultRequestEvent.url, search: '?/removed' }
+			})
+		).toThrowError('POST not allowed for this request');
+	});
+});
