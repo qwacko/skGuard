@@ -21,3 +21,11 @@ jobs:
         id: check
         with:
           file-url: https://unpkg.com/skguard@latest/package.json
+
+      - name: Log when changed
+        if: steps.check.outputs.changed == 'true'
+        run: 'echo "Version change found in commit ${{ steps.check.outputs.commit }}! New version: ${{ steps.check.outputs.version }} (${{ steps.check.outputs.type }})"'
+
+      - name: Log when unchanged
+        if: steps.check.outputs.changed == 'false'
+        run: 'echo "No version change :/"'
