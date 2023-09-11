@@ -1,4 +1,4 @@
-import { error, redirect, type Page, type RequestEvent } from '@sveltejs/kit';
+import { error, redirect, type Page, type RequestEvent, type LoadEvent } from '@sveltejs/kit';
 import type { RouteConfigObjectType } from './authGuardTypes.js';
 import { authGuardCore } from './authGuardCore.js';
 
@@ -10,10 +10,14 @@ export const skGuard = <
 	AllowList extends string[],
 	BlockList extends string[],
 	T extends RouteConfigObjectType<VReturn>,
-	U extends (keyof T & string) | AllowList[0] | BlockList[0]
+	U extends (keyof T & string) | AllowList[0] | BlockList[0],
+	VTypeClientLoad extends (
+		data: LoadEvent<Record<string, string>, Record<string, unknown>, Record<string, unknown>, U>
+	) => VReturn
 >({
 	routeConfig,
 	validationBackend,
+	validationClientLoad,
 	allowList,
 	blockList,
 	defaultAllow = false,
@@ -36,6 +40,7 @@ export const skGuard = <
 }: {
 	routeConfig: T;
 	validationBackend: VTypeBackend;
+	validationClientLoad: VTypeClientLoad;
 	allowList?: AllowList;
 	blockList?: BlockList;
 	defaultAllow?: boolean;
@@ -54,8 +59,8 @@ export const skGuard = <
 	): any;
 	errorFuncFrontend?: (status: number, body: string | { message: string }) => any;
 }) => {
-	const FrontendValidation = <S extends Page<Record<string, string>, string | null>>(
-		page: S,
+	const FrontendValidation = (
+		page: Page<Record<string, string>, null | string>,
 		validation: VReturn,
 		customValidation?: (data: VReturn) => string | undefined | null
 	) => {
@@ -114,6 +119,40 @@ export const skGuard = <
 
 		return requestData;
 	};
-	const returnData = [BackendValidation, FrontendValidation] as const;
-	return returnData;
+	const ClientLoadValidation = <
+		S extends LoadEvent<Record<string, string>, Record<string, unknown>, Record<string, unknown>, U>
+	>(
+		requestData: S,
+		customValidation?: (data: VReturn) => string | undefined | null
+	) => {
+		const validationResults = authGuardCore({
+			allowList,
+			blockList,
+			defaultAllow,
+			defaultBlockTarget,
+			isPOST: false,
+			routeConfig,
+			routeId: requestData.route.id,
+			validation: validationClientLoad(requestData) as VReturn,
+			routeNotFoundMessage,
+			customValidation,
+			urlSearch: requestData.url?.search,
+			defaultAllowPOST,
+			postNotAllowedMessage
+		});
+
+		if (validationResults.type === 'authorised') return requestData;
+		else if (validationResults.type === 'error') {
+			errorFuncBackend(400, validationResults.errorMessage);
+		} else if (validationResults.type === 'redirect') {
+			redirectFuncBackend(302, validationResults.redirectAddress);
+		}
+
+		return requestData;
+	};
+	return {
+		backend: BackendValidation,
+		frontend: FrontendValidation,
+		clientLoad: ClientLoadValidation
+	};
 };
