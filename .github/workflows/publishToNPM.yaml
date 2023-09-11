@@ -12,8 +12,18 @@ jobs:
         with:
           node-version: '16.x'
           registry-url: 'https://registry.npmjs.org'
-      - run: npm ci
-      - run: npm run check
-      - run: npm publish
+                - name: Install Node.js
+        
+      - uses: pnpm/action-setup@v2
+        name: Install pnpm
+        with:
+          version: 7
+          run_install: false
+      - run: pnpm i
+        name: Install Dependencies
+      - run: pnpm check
+        name: Typescript Check
+      - run: pnpm publish
+        name: Publish To NPM
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
