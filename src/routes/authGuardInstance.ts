@@ -40,6 +40,5 @@ export const {
 		}
 	},
 	validationBackend: () => ({ user: true }),
-	validationClientLoad: () => ({ user: true }),
 	redirectFuncFrontend: (status, location) => goto(location)
 });

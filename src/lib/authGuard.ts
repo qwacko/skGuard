@@ -10,14 +10,10 @@ export const skGuard = <
 	AllowList extends string[],
 	BlockList extends string[],
 	T extends RouteConfigObjectType<VReturn>,
-	U extends (keyof T & string) | AllowList[0] | BlockList[0],
-	VTypeClientLoad extends (
-		data: LoadEvent<Record<string, string>, Record<string, unknown>, Record<string, unknown>, U>
-	) => VReturn
+	U extends (keyof T & string) | AllowList[0] | BlockList[0]
 >({
 	routeConfig,
 	validationBackend,
-	validationClientLoad,
 	allowList,
 	blockList,
 	defaultAllow = false,
@@ -40,7 +36,6 @@ export const skGuard = <
 }: {
 	routeConfig: T;
 	validationBackend: VTypeBackend;
-	validationClientLoad: VTypeClientLoad;
 	allowList?: AllowList;
 	blockList?: BlockList;
 	defaultAllow?: boolean;
@@ -123,6 +118,7 @@ export const skGuard = <
 		S extends LoadEvent<Record<string, string>, Record<string, unknown>, Record<string, unknown>, U>
 	>(
 		requestData: S,
+		validation: VReturn,
 		customValidation?: (data: VReturn) => string | undefined | null
 	) => {
 		const validationResults = authGuardCore({
@@ -133,7 +129,7 @@ export const skGuard = <
 			isPOST: false,
 			routeConfig,
 			routeId: requestData.route.id,
-			validation: validationClientLoad(requestData) as VReturn,
+			validation,
 			routeNotFoundMessage,
 			customValidation,
 			urlSearch: requestData.url?.search,
