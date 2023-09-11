@@ -27,7 +27,7 @@ jobs:
           static-checking: localIsNew
 
       - name: Log Output
-        run: 'echo - Check output version ${{ steps.check.outputs.version }} - Changed ${{ steps.check.outputs.changed }}'
+        run: 'echo - Check output version ${{ steps.check.outputs.version }} - Changed ${{ steps.check.outputs.changed }} - ALl ${{ steps.check.output }}'
 
       - name: Log when changed
         if: steps.check.outputs.changed == 'true'
