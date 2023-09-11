@@ -1,4 +1,4 @@
-name: Run Automated Checks (Typescript and vitest)
+name: Run Automatic Checks (Typescript and vitest)
 on:
   pull_request:
     branches:
