@@ -1,4 +1,4 @@
-name: Publish Package to npmjs
+name: Run Automated Checks (Typescript and vitest)
 on:
   pull_request:
     branches:
