@@ -1,120 +1,75 @@
-import { error, redirect, type RequestEvent } from '@sveltejs/kit';
+import { error, redirect, type Page, type RequestEvent } from '@sveltejs/kit';
+import type { RouteConfigObjectType } from './authGuardTypes.js';
+import { authGuardCore } from './authGuardCore.js';
 
-export type allowedFunction<UserValidationOutput extends Record<string, boolean | string>> = (
-	data: UserValidationOutput
-) => string | undefined | null;
-
-export type RouteConfig<UserValidationOutput extends Record<string, boolean | string>> = {
-	check: allowedFunction<UserValidationOutput>;
-	POSTCheck?: Record<string, allowedFunction<UserValidationOutput>>;
-};
-
-export type RouteConfigObjectType<UserValidationOutput extends Record<string, boolean | string>> = {
-	[key: string]: RouteConfig<UserValidationOutput>;
-};
-
-type CoreReturnType =
-	| { type: 'redirect'; redirectAddress: string }
-	| { type: 'error'; errorMessage: string }
-	| { type: 'authorised' };
-
-const skGuardCore = <ValidType extends Record<string, boolean | string>>({
+export const skGuardFrontEnd = <
+	VType extends (data: Page<Record<string, string>, string>) => Record<string, string | boolean>,
+	VReturn extends ReturnType<VType>,
+	AllowList extends string[],
+	BlockList extends string[],
+	T extends RouteConfigObjectType<VReturn>
+>({
+	routeConfig,
+	validation,
 	allowList,
 	blockList,
-	defaultAllow,
+	defaultAllow = false,
 	defaultBlockTarget,
-	defaultAllowPOST,
-	isPOST,
-	routeId,
-	urlSearch,
-	validation,
-	routeConfig,
-	routeNotFoundMessage,
-	postNotAllowedMessage,
-	customValidation
+	routeNotFoundMessage = 'No route config found for this route.',
+	defaultAllowPOST = false,
+	postNotAllowedMessage = 'POST not allowed for this request.',
+	redirectFunc = (status, location) => {
+		throw redirect(status, location);
+	},
+	errorFunc = (status, body) => {
+		throw error(status, body);
+	}
 }: {
-	allowList: string[];
-	blockList: string[];
-	defaultAllow: boolean;
-	defaultAllowPOST: boolean;
-	defaultBlockTarget: string;
-	routeNotFoundMessage: string;
-	postNotAllowedMessage: string;
-	isPOST: boolean;
-	routeId: string;
-	urlSearch: string | undefined;
-	validation: ValidType;
-	routeConfig: RouteConfigObjectType<ValidType>;
-	customValidation: (input: ValidType) => string | undefined;
-}): CoreReturnType => {
-	if (allowList && allowList.includes(routeId)) {
-		return { type: 'authorised' };
-	}
+	routeConfig: T;
+	validation: VType;
+	allowList?: AllowList;
+	blockList?: BlockList;
+	defaultAllow?: boolean;
+	defaultBlockTarget?: string;
+	routeNotFoundMessage?: string;
+	defaultAllowPOST?: boolean;
+	postNotAllowedMessage?: string;
+	redirectFunc?(
+		status: 300 | 301 | 302 | 303 | 304 | 305 | 306 | 307 | 308,
+		location: string | URL
+	): any;
+	errorFunc?: (status: number, body: string | { message: string }) => any;
+}) => {
+	const FrontendValidation = <S extends Page<Record<string, string>, string>>(
+		requestData: S,
+		customValidation?: (data: VReturn) => string | undefined | null
+	) => {
+		const validationResults = authGuardCore({
+			allowList,
+			blockList,
+			defaultAllow,
+			defaultBlockTarget,
+			isPOST: false,
+			routeConfig,
+			routeId: requestData.route.id,
+			validation: validation(requestData) as VReturn,
+			routeNotFoundMessage,
+			customValidation,
+			urlSearch: requestData.url?.search,
+			defaultAllowPOST,
+			postNotAllowedMessage
+		});
 
-	if (blockList && blockList.includes(routeId)) {
-		if (defaultBlockTarget && !isPOST) {
-			return { type: 'redirect', redirectAddress: defaultBlockTarget };
-		} else {
-			return { type: 'error', errorMessage: routeNotFoundMessage };
-		}
-	}
-
-	const currentRouteConfig = routeConfig[routeId];
-
-	if (!currentRouteConfig) {
-		if (defaultAllow) {
-			return { type: 'authorised' };
-		} else if (!defaultBlockTarget || isPOST) {
-			return { type: 'error', errorMessage: routeNotFoundMessage };
-		} else {
-			return { type: 'redirect', redirectAddress: defaultBlockTarget };
-		}
-	}
-
-	const validationResult = validation;
-
-	const redirectTarget = currentRouteConfig.check(validationResult);
-	const customValidationResult = customValidation ? customValidation(validationResult) : undefined;
-
-	if (redirectTarget && !isPOST) {
-		return { type: 'redirect', redirectAddress: redirectTarget };
-	}
-
-	if (customValidationResult && !isPOST) {
-		return { type: 'redirect', redirectAddress: customValidationResult };
-	}
-
-	if (isPOST) {
-		const postCheck = currentRouteConfig.POSTCheck
-			? urlSearch
-				? currentRouteConfig.POSTCheck[urlSearch.replace('?/', '')]
-				: currentRouteConfig.POSTCheck['default']
-			: undefined;
-
-		const defaultPostCheck = currentRouteConfig.POSTCheck
-			? currentRouteConfig.POSTCheck['default']
-			: undefined;
-
-		if (!postCheck && !defaultPostCheck) {
-			if (defaultAllowPOST) {
-				return { type: 'authorised' };
-			} else {
-				return { type: 'error', errorMessage: postNotAllowedMessage };
-			}
+		if (validationResults.type === 'authorised') return requestData;
+		else if (validationResults.type === 'error') {
+			errorFunc(400, validationResults.errorMessage);
+		} else if (validationResults.type === 'redirect') {
+			redirectFunc(302, validationResults.redirectAddress);
 		}
 
-		const postCheckResult = postCheck
-			? postCheck(validationResult)
-			: defaultPostCheck
-			? defaultPostCheck(validationResult)
-			: undefined;
-
-		if (postCheckResult) {
-			return { type: 'error', errorMessage: postCheckResult };
-		}
-	}
-
-	return { type: 'authorised' };
+		return requestData;
+	};
+	return FrontendValidation;
 };
 
 export const skGuard = <
@@ -162,7 +117,7 @@ export const skGuard = <
 		requestData: S,
 		customValidation?: (data: VReturn) => string | undefined | null
 	) => {
-		const validationResults = skGuardCore({
+		const validationResults = authGuardCore({
 			allowList,
 			blockList,
 			defaultAllow,
