@@ -54,7 +54,7 @@ export const skGuard = <
 	): any;
 	errorFuncFrontend?: (status: number, body: string | { message: string }) => any;
 }) => {
-	const FrontendValidation = <S extends Page<Record<string, string>, string>>(
+	const FrontendValidation = <S extends Page<Record<string, string>, string | null>>(
 		page: S,
 		validation: VReturn,
 		customValidation?: (data: VReturn) => string | undefined | null

@@ -99,7 +99,6 @@ const skGuardConfig = {
 	blockList: ['/closed', '/openBlocked'],
 
 	validationBackend: (): ValidationReturn => ({ admin: true, user: false }),
-	validationFrontEnd: (): ValidationReturn => ({ admin: true, user: false }),
 	redirectFuncBackend: (
 		status: 300 | 301 | 302 | 303 | 304 | 305 | 306 | 307 | 308,
 		location: string | URL
@@ -122,18 +121,15 @@ const skGuardConfig = {
 
 const [skGuardWithRoutesAndNoUser] = skGuard({
 	...skGuardConfig,
-	validationBackend: () => ({ admin: false, user: false }),
-	validationFrontEnd: () => ({ admin: false, user: false })
+	validationBackend: () => ({ admin: false, user: false })
 });
 const [skGuardWithRoutesAndAdmin] = skGuard({
 	...skGuardConfig,
-	validationBackend: () => ({ admin: true, user: true }),
-	validationFrontEnd: () => ({ admin: true, user: true })
+	validationBackend: () => ({ admin: true, user: true })
 });
 const [skGuardWithRoutesAndUser] = skGuard({
 	...skGuardConfig,
-	validationBackend: () => ({ admin: false, user: true }),
-	validationFrontEnd: () => ({ admin: false, user: true })
+	validationBackend: () => ({ admin: false, user: true })
 });
 const [skGuardWithRoutesAndAllowed] = skGuard({ ...skGuardConfig, defaultAllow: true });
 
