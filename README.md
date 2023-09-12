@@ -2,6 +2,8 @@
 
 skGuard is a powerful route guarding utility for SvelteKit applications. It provides a flexible mechanism to guard routes based on custom validation logic, allowing developers to easily manage route access based on various conditions.
 
+The key objective is to make it easy to confirm what access is allowed in a single location, and protect all routes across all different ways of accessing pages (client-side or server-side routing)
+
 ## Features
 
 - Route-specific Checks: Define custom checks for each route in your application. The same route config can be used across any frontend guards and backend guards.
@@ -148,17 +150,45 @@ export const {
 
 The main function of skGuard. It takes in a configuration object and returns a function to guard routes.
 
-Parameters
+#### Route Config
 
-- routeConfig: Configuration object defining checks for each route.
-- validation: Function to validate the request data.
-- allowList: (Optional) List of routes that should always be allowed.
-- blockList: (Optional) List of routes that should always be blocked.
+The route configuration object defines the route behaviour for all routes that the route guard is to be used for. This is an object where the keys are the route name (including hidden routes, and layout groups, i.e. /blog/(primary)/view/[id]/ would be used rather than /blog/view/1234). Within each object item, there is the following functionality:
+
+- check function : This takes in the output of the validation functionality, and will return undefined if access is allowed, or a url address that the user will be redirected to if not.
+- POSTCheck : This is an object of different POST endpoints which can be individually checked. If the specific POST address is not found, then the "default" item will be used. This returns undefined for authorised, and any text will be returned as an error message.
+
+```typescript
+
+# Example route config (simple)
+
+routeConfig: {
+	'/users/[id]': {
+		check: ({user}) => user ?   undefined : "/login",
+		POSTCheck: {
+			default: ({user}) => user.admin ? undefined : "Access Denied"
+		}
+	}
+}
+
+```
+
+Because the routeConfig is a javascript object, it is possibly to defined specific filtering as a function and re-use the same functionality across multiple routes.
+
+#### Parameters
+
+- routeConfig: Configuration object defining checks for each route. Uses type `RouteConfigObject`.
+- validationBackend: Function to produces the validation data that the functions in the routeConfig will be checked against. This provides access to the request informaiton, including locals. If items such as database access are necessary, then these may be included into the funciton.
+- allowList: (Optional) List of routes that should always be allowed (array of strings). Note that allowList overrides blockList if the same route appears in both.
+- blockList: (Optional) List of routes that should always be blocked (array of strings). Note that allowList overrides blockList if the same route appears in both.
 - defaultAllow: (Optional) Default behavior when a route is not found in the config (true to allow, false to block).
-- defaultBlockTarget: (Optional) Default redirect target when a route is blocked.
+- defaultBlockTarget: (Optional) Default redirect target when a route is not found or in the blockList.
 - routeNotFoundMessage: (Optional) Error message when a route is not found in the config.
 - defaultAllowPOST: (Optional) Default behavior for POST requests when not explicitly configured.
 - postNotAllowedMessage: (Optional) Error message for disallowed POST requests.
+- redirectFuncBackend: (Optional) Funciton called whenever a redirect is required in the backend logic. By default this uses the sveltekit redirection function.
+- errorFuncBackend: (Optional) Function called whenever a route is not found, and there is no default redirect location. THis is called for every error in a POST request as redirects are not valid.
+- redirectFuncFrontend: (Optional) Function used in client load function or .svelte file when a redirect is required. If either of these frontend use cases are utilised, then a redirect will not work unless these are customised, the default functionality is to log the redirect.
+- errorFuncFrontend: (Optional) Functionality when an error is received in the frontend. Defaults to console logging the errors, but it is likely that a user of this would need to configure different behaviour.
 
 ## Contributing
 
