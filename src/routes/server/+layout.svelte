@@ -1,13 +1,11 @@
-<script lang="ts">
-	import { page } from '$app/stores';
-</script>
-
 <div class="pageLayout">
 	<nav>
-		<a href="/clientLoad">Client Load</a>
-		<a href="/layout">Layout</a>
-		<a href="/hooks">Hooks</a>
-		<a href="/server">Server</a>
+		<a href="/server/">Root</a>
+		<a href="/server/home">Home</a>
+		<a href="/server/blocked">Blocked</a>
+		<a href="/server/idAllowed">id:allowed</a>
+		<a href="/server/idBlocked">id:blocked</a>
+		<a href="/server/idOther">id:other</a>
 	</nav>
 	<slot />
 </div>

@@ -4,11 +4,16 @@ skGuard is a powerful route guarding utility for SvelteKit applications. It prov
 
 ## Features
 
-- Route-specific Checks: Define custom checks for each route in your application.
+- Route-specific Checks: Define custom checks for each route in your application. The same route config can be used across any frontend guards and backend guards.
+- Frontend Logic: Generates frontend logic that can be inserted into a `+layout.svelte` or `+page.svelte` page and generate a redirect regardless of whether a server side call is made.
+- Client Load function `+page.ts`/`+page.js` : Returns a function that can be used in client load functions to auth guard a specific page / route.
+- Backend Logic: Generates logic that can be included in `hooks.server.ts` and `+page.server.ts` files (load and action functions) to protect the endpoints at the server side.
+- Route Type Checking: If the backend guard is placed into `+page.server.ts` files then type errors will be generated if a route is defined that doesn't exist in the route config.
+- Custom redirect and error logic : Default error logic and redirect logic is implemented, however custom functions can be used if a specific approach is desired (i.e. include logging or a popup).
 - Custom Validation: Use your own validation logic to determine access.
 - Allow and Block Lists: Specify routes that should always be allowed or blocked.
 - Default Behaviors: Set default behaviors for routes not explicitly configured.
-- Support for POST Requests: Define custom behaviors for POST requests.
+- Support for POST Requests: Define custom behaviors for specific page actions (POST Requests).
 
 ## Installation
 
@@ -23,6 +28,12 @@ pnpm add skGuard
 ```
 
 ## Usage
+
+### Example
+
+The skGuard code includes examples of all the functionality described below.
+
+### Define Functionality
 
 Import the skGuard function:
 
@@ -39,7 +50,7 @@ const routeConfig = {
 	}
 };
 
-const validation = (requestData) => {
+const validationBackend = (requestData) => {
 	return {
 		user: requestData.locals.user
 	};
@@ -49,14 +60,87 @@ const validation = (requestData) => {
 Create the guard:
 
 ```javascript
-const guard = skGuard({
+const {
+	backend: backendGuard,
+	frontend: frontendGuard,
+	clientLoad: clientLoadGuard
+} = skGuard({
 	routeConfig,
-	validation
+	validationBackend
 });
 ```
 
-Use the guard in your routes:
-TBC
+## Protecting Through Hooks
+
+You can protect all routes by including the bankend guard function into your hooks file as follows (note that a type override is required to avoid type errors on the route id):
+
+```typescript
+export const handle: Handle = async ({ event, resolve }) => {
+	backendGuard(event as Parameters<typeof authGuard>[0]);
+
+	return await resolve(event);
+};
+```
+
+### Protecting Through +page.server.ts
+
+Page load functions and actions can be protected by including the backendGuard fuction into the `+page.server.ts` file. This allows for typechecking of routes, or also a custom validation function to be used if data that is only available on a specific route should be used (i.e. route params such as /[id]/ determine whether a specific user should be able to access a page).
+
+```typescript
+import { backendGuard } from '../../authGuardInstance.js';
+
+#Example of using skAuth to guard specific routes.
+export const load = (data) => {
+	backendGuard(data, (prevAuth) => {
+		if (!prevAuth.user || data.params.id === 'idBlocked') {
+			return '/server/idAllowed';
+		}
+		return undefined;
+	});
+
+	return {
+		routeParam: data.params.id
+	};
+};
+```
+
+Note: The custom validation function is provided with the default validation output, and returns either a url to redirect to, or undefined to allow the current page to be used.
+
+### Protecting throuhg +layout.svelte
+
+For client side routing protection with the same functionality as server side, a function is available that can be inserted into the `+layout.svelte` or `+page.svelte` file. THis will read the route id and provide a redirect or error as necessary.
+
+Note: Due to the fact that client side data is inconsitent across pages, the developer must input the validation function output directly into the function when called in the `.svelte` file (see below).
+
+```svelte
+<script lang="ts">
+	import { frontendGuard } from '../authGuardInstance.js';
+	import { page } from '$app/stores';
+
+	$: frontendGuard($page, { user: true });
+</script>
+```
+
+if using front end logic, then the configuration of the skGuard must include the logic that is desired for any frontend redirection or error logic. See `redirectFuncFrontend` and `errorFuncFrontend` below.
+
+```typescript
+import { goto } from '$app/navigation';
+import { skGuard } from '$lib/authGuard.js';
+
+export const {
+	backend: backendGuard,
+	frontend: frontendGuard,
+	clientLoad: clientLoadGuard
+} = skGuard({
+	routeConfig: {
+		...
+	}
+	validationBackend: () => ({ user: true }),
+	redirectFuncFrontend: (status, location) => goto(location),
+	errorFuncFrontend: (status, body) => console.log('Auth Error : ', { status, body })
+});
+
+```
 
 ## API
 
