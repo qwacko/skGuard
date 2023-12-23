@@ -1,4 +1,4 @@
-import { error, redirect, type Page, type RequestEvent, type LoadEvent } from '@sveltejs/kit';
+import { error, redirect, type Page, type RequestEvent, type LoadEvent, type NumericRange } from '@sveltejs/kit';
 import type { RouteConfigObjectType } from './authGuardTypes.js';
 import { authGuardCore } from './authGuardCore.js';
 
@@ -22,10 +22,10 @@ export const skGuard = <
 	defaultAllowPOST = false,
 	postNotAllowedMessage = 'POST not allowed for this request.',
 	redirectFuncBackend = (status, location) => {
-		throw redirect(status, location);
+		redirect(status, location);
 	},
 	errorFuncBackend = (status, body) => {
-		throw error(status, body);
+		error(status, body);
 	},
 	redirectFuncFrontend = (status, location) => {
 		console.log('Redirect Function : ', { status, location });
@@ -44,12 +44,12 @@ export const skGuard = <
 	defaultAllowPOST?: boolean;
 	postNotAllowedMessage?: string;
 	redirectFuncBackend?(
-		status: 300 | 301 | 302 | 303 | 304 | 305 | 306 | 307 | 308,
+		status: NumericRange<300,308>,
 		location: string | URL
 	): any;
-	errorFuncBackend?: (status: number, body: string | { message: string }) => any;
+	errorFuncBackend?: (status: NumericRange<400, 599>, body: string | { message: string }) => any;
 	redirectFuncFrontend?(
-		status: 300 | 301 | 302 | 303 | 304 | 305 | 306 | 307 | 308,
+		status: number,
 		location: string | URL
 	): any;
 	errorFuncFrontend?: (status: number, body: string | { message: string }) => any;
