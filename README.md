@@ -25,8 +25,6 @@ npm install skGuard
 
 # pnpm
 pnpm add skGuard
-
-
 ```
 
 ## Usage
@@ -45,7 +43,7 @@ import { skGuard } from 'skGuard';
 
 Define your route configurations and validation logic:
 
-```javascript
+```typescript
 const routeConfig = {
 	'/protected-route': {
 		check: (data) => (data.user ? null : '/login')
@@ -61,7 +59,7 @@ const validationBackend = (requestData) => {
 
 Create the guard:
 
-```javascript
+```typescript
 const {
 	backend: backendGuard,
 	frontend: frontendGuard,
@@ -91,7 +89,7 @@ Page load functions and actions can be protected by including the backendGuard f
 ```typescript
 import { backendGuard } from '../../authGuardInstance.js';
 
-#Example of using skAuth to guard specific routes.
+// Example of using skAuth to guard specific routes.
 export const load = (data) => {
 	backendGuard(data, (prevAuth) => {
 		if (!prevAuth.user || data.params.id === 'idBlocked') {
@@ -158,9 +156,7 @@ The route configuration object defines the route behaviour for all routes that t
 - POSTCheck : This is an object of different POST endpoints which can be individually checked. If the specific POST address is not found, then the "default" item will be used. This returns undefined for authorised, and any text will be returned as an error message.
 
 ```typescript
-
-# Example route config (simple)
-
+// Example route config (simple)
 routeConfig: {
 	'/users/[id]': {
 		check: ({user}) => user ?   undefined : "/login",
@@ -169,7 +165,6 @@ routeConfig: {
 		}
 	}
 }
-
 ```
 
 Because the routeConfig is a javascript object, it is possibly to defined specific filtering as a function and re-use the same functionality across multiple routes.
