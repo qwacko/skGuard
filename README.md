@@ -108,7 +108,7 @@ export const load = (data) => {
 
 Note: The custom validation function is provided with the default validation output, and returns either a url to redirect to, or undefined to allow the current page to be used.
 
-### Protecting throuhg +layout.svelte
+### Protecting Through +layout.svelte
 
 For client side routing protection with the same functionality as server side, a function is available that can be inserted into the `+layout.svelte` or `+page.svelte` file. THis will read the route id and provide a redirect or error as necessary.
 
