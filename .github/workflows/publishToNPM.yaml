@@ -25,7 +25,7 @@ jobs:
         name: Install Dependencies
       - run: pnpm check
         name: Typescript Check
-      - run: pnpm publish
+      - run: pnpm publish  --no-git-checks
         name: Publish To NPM
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
