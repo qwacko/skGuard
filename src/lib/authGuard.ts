@@ -1,7 +1,43 @@
-import { error, redirect, type Page, type RequestEvent, type LoadEvent, type NumericRange } from '@sveltejs/kit';
+import {
+	error,
+	redirect,
+	type Page,
+	type RequestEvent,
+	type LoadEvent,
+	type NumericRange
+} from '@sveltejs/kit';
 import type { RouteConfigObjectType } from './authGuardTypes.js';
 import { authGuardCore } from './authGuardCore.js';
 
+/**
+ * Creates an authentication guard for SvelteKit applications.
+ *
+ * @template VTypeBackend - Type of the backend validation function
+ * @template VReturn - Return type of the validation function
+ * @template AllowList - Array of route paths that are always allowed
+ * @template BlockList - Array of route paths that are always blocked
+ * @template T - Route configuration object type
+ * @template U - Union of route paths and allowed/blocked paths
+ *
+ * @example
+ * ```typescript
+ * const { backend, frontend, clientLoad } = skGuard({
+ *   routeConfig: {
+ *     '/protected': {
+ *       check: ({user}) => user ? undefined : '/login',
+ *       POSTCheck: {
+ *         'create': ({user}) => user.isAdmin ? undefined : 'Admin only'
+ *       }
+ *     }
+ *   },
+ *   validationBackend: (event) => ({
+ *     user: event.locals.user
+ *   }),
+ *   allowList: ['/login', '/public'],
+ *   defaultBlockTarget: '/login'
+ * });
+ * ```
+ */
 export const skGuard = <
 	VTypeBackend extends (
 		data: RequestEvent<Partial<Record<string, string>>, U>
@@ -34,26 +70,39 @@ export const skGuard = <
 		console.log('Error Function : ', { status, body });
 	}
 }: {
+	/** Configuration object defining checks for each route */
 	routeConfig: T;
+	/** Function to produce validation data from request events */
 	validationBackend: VTypeBackend;
+	/** List of routes that should always be allowed */
 	allowList?: AllowList;
+	/** List of routes that should always be blocked */
 	blockList?: BlockList;
+	/** Default behavior when a route is not found in config */
 	defaultAllow?: boolean;
+	/** Default redirect target when route is blocked */
 	defaultBlockTarget?: string;
+	/** Error message when route is not found in config */
 	routeNotFoundMessage?: string;
+	/** Default behavior for POST requests */
 	defaultAllowPOST?: boolean;
+	/** Error message for disallowed POST requests */
 	postNotAllowedMessage?: string;
-	redirectFuncBackend?(
-		status: NumericRange<300,308>,
-		location: string | URL
-	): any;
-	errorFuncBackend?: (status: NumericRange<400, 599>, body: string | { message: string }) => any;
-	redirectFuncFrontend?(
-		status: number,
-		location: string | URL
-	): any;
-	errorFuncFrontend?: (status: number, body: string | { message: string }) => any;
+	/** Custom redirect function for backend */
+	redirectFuncBackend?(status: NumericRange<300, 308>, location: string | URL): any;
+	/** Custom error function for backend */
+	errorFuncBackend?(status: NumericRange<400, 599>, body: string | { message: string }): any;
+	/** Custom redirect function for frontend */
+	redirectFuncFrontend?(status: number, location: string | URL): any;
+	/** Custom error function for frontend */
+	errorFuncFrontend?(status: number, body: string | { message: string }): any;
 }) => {
+	/**
+	 * Frontend validation function for use in +layout.svelte or +page.svelte
+	 * @param page - SvelteKit page object
+	 * @param validation - Validation data for the current request
+	 * @param customValidation - Optional custom validation function
+	 */
 	const FrontendValidation = (
 		page: Page<Record<string, string>, null | string>,
 		validation: VReturn,
@@ -85,6 +134,11 @@ export const skGuard = <
 		return page;
 	};
 
+	/**
+	 * Backend validation function for use in hooks.server.ts or +page.server.ts
+	 * @param requestData - SvelteKit request event
+	 * @param customValidation - Optional custom validation function
+	 */
 	const BackendValidation = <S extends RequestEvent<Partial<Record<string, string>>, U>>(
 		requestData: S,
 		customValidation?: (data: VReturn) => string | undefined | null
@@ -114,6 +168,13 @@ export const skGuard = <
 
 		return requestData;
 	};
+
+	/**
+	 * Client-side load function validation for use in +page.ts
+	 * @param requestData - SvelteKit load event
+	 * @param validation - Validation data for the current request
+	 * @param customValidation - Optional custom validation function
+	 */
 	const ClientLoadValidation = <
 		S extends LoadEvent<Record<string, string>, Record<string, unknown>, Record<string, unknown>, U>
 	>(
@@ -146,6 +207,7 @@ export const skGuard = <
 
 		return requestData;
 	};
+
 	return {
 		backend: BackendValidation,
 		frontend: FrontendValidation,

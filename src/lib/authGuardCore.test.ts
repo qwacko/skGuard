@@ -41,7 +41,11 @@ describe('authGuardCore', () => {
 			blockList: ['testRoute'],
 			isPOST: true
 		});
-		expect(result).toEqual({ type: 'error', errorMessage: 'Route not found' });
+		expect(result).toEqual({
+			code: 'ACCESS_DENIED',
+			type: 'error',
+			errorMessage: 'Route not found'
+		});
 	});
 
 	it('should return authorised when currentRouteConfig is missing and defaultAllow is true', () => {
@@ -63,7 +67,11 @@ describe('authGuardCore', () => {
 			defaultAllow: false,
 			isPOST: true
 		});
-		expect(result).toEqual({ type: 'error', errorMessage: 'Route not found' });
+		expect(result).toEqual({
+			code: 'ROUTE_NOT_FOUND',
+			type: 'error',
+			errorMessage: 'Route not found'
+		});
 	});
 
 	// Assuming a mock routeConfig for the next tests
@@ -99,6 +107,10 @@ describe('authGuardCore', () => {
 			routeConfig: mockRouteConfig,
 			isPOST: true
 		});
-		expect(result).toEqual({ type: 'error', errorMessage: 'POST error message' });
+		expect(result).toEqual({
+			code: 'ACCESS_DENIED',
+			type: 'error',
+			errorMessage: 'POST error message'
+		});
 	});
 });

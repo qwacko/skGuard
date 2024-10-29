@@ -16,6 +16,8 @@ The key objective is to make it easy to confirm what access is allowed in a sing
 - Allow and Block Lists: Specify routes that should always be allowed or blocked.
 - Default Behaviors: Set default behaviors for routes not explicitly configured.
 - Support for POST Requests: Define custom behaviors for specific page actions (POST Requests).
+- Improved Error Handling: Specific error codes and messages for different types of authentication failures.
+- Type-Safe Implementation: Comprehensive TypeScript support with strict type checking.
 
 ## Installation
 
@@ -37,7 +39,7 @@ The skGuard code includes examples of all the functionality described below.
 
 Import the skGuard function:
 
-```javascript
+```typescript
 import { skGuard } from 'skGuard';
 ```
 
@@ -45,15 +47,18 @@ Define your route configurations and validation logic:
 
 ```typescript
 const routeConfig = {
-	'/protected-route': {
-		check: (data) => (data.user ? null : '/login')
-	}
+  '/protected-route': {
+    check: (data) => (data.user ? null : '/login'),
+    POSTCheck: {
+      'create': (data) => (data.user.isAdmin ? null : 'Admin access required')
+    }
+  }
 };
 
 const validationBackend = (requestData) => {
-	return {
-		user: requestData.locals.user
-	};
+  return {
+    user: requestData.locals.user
+  };
 };
 ```
 
@@ -61,12 +66,43 @@ Create the guard:
 
 ```typescript
 const {
-	backend: backendGuard,
-	frontend: frontendGuard,
-	clientLoad: clientLoadGuard
+  backend: backendGuard,
+  frontend: frontendGuard,
+  clientLoad: clientLoadGuard
 } = skGuard({
-	routeConfig,
-	validationBackend
+  routeConfig,
+  validationBackend,
+  allowList: ['/login', '/public'],
+  defaultBlockTarget: '/login'
+});
+```
+
+## Error Handling
+
+skGuard provides specific error codes for different authentication failure scenarios:
+
+```typescript
+enum AuthGuardErrorCode {
+  ROUTE_NOT_FOUND = 'ROUTE_NOT_FOUND',   // Route not found in configuration
+  POST_NOT_ALLOWED = 'POST_NOT_ALLOWED',  // POST request not allowed for route
+  ACCESS_DENIED = 'ACCESS_DENIED',        // Access denied by validation
+  VALIDATION_FAILED = 'VALIDATION_FAILED' // Validation function failed
+}
+```
+
+You can customize error handling by providing custom error functions:
+
+```typescript
+const guard = skGuard({
+  // ... other config
+  errorFuncBackend: (status, body) => {
+    console.error(`Auth Error (${status}):`, body);
+    error(status, body);
+  },
+  errorFuncFrontend: (status, body) => {
+    console.error(`Client Auth Error (${status}):`, body);
+    // Custom client-side error handling
+  }
 });
 ```
 
@@ -76,9 +112,9 @@ You can protect all routes by including the backend guard function into your hoo
 
 ```typescript
 export const handle: Handle = async ({ event, resolve }) => {
-	backendGuard(event as Parameters<typeof authGuard>[0]);
+  backendGuard(event as Parameters<typeof authGuard>[0]);
 
-	return await resolve(event);
+  return await resolve(event);
 };
 ```
 
@@ -91,16 +127,16 @@ import { backendGuard } from '../../authGuardInstance.js';
 
 // Example of using skAuth to guard specific routes.
 export const load = (data) => {
-	backendGuard(data, (prevAuth) => {
-		if (!prevAuth.user || data.params.id === 'idBlocked') {
-			return '/server/idAllowed';
-		}
-		return undefined;
-	});
+  backendGuard(data, (prevAuth) => {
+    if (!prevAuth.user || data.params.id === 'idBlocked') {
+      return '/server/idAllowed';
+    }
+    return undefined;
+  });
 
-	return {
-		routeParam: data.params.id
-	};
+  return {
+    routeParam: data.params.id
+  };
 };
 ```
 
@@ -114,76 +150,41 @@ Note: Due to the fact that client side data is inconsistent across pages, the de
 
 ```svelte
 <script lang="ts">
-	import { frontendGuard } from '../authGuardInstance.js';
-	import { page } from '$app/stores';
+  import { frontendGuard } from '../authGuardInstance.js';
+  import { page } from '$app/stores';
 
-	$: frontendGuard($page, { user: true });
+  $: frontendGuard($page, { user: true });
 </script>
 ```
 
-if using front end logic, then the configuration of the skGuard must include the logic that is desired for any frontend redirection or error logic. See `redirectFuncFrontend` and `errorFuncFrontend` below.
+If using front end logic, then the configuration of the skGuard must include the logic that is desired for any frontend redirection or error logic. See `redirectFuncFrontend` and `errorFuncFrontend` below.
 
 ```typescript
 import { goto } from '$app/navigation';
 import { skGuard } from '$lib/authGuard.js';
 
 export const {
-	backend: backendGuard,
-	frontend: frontendGuard,
-	clientLoad: clientLoadGuard
+  backend: backendGuard,
+  frontend: frontendGuard,
+  clientLoad: clientLoadGuard
 } = skGuard({
-	routeConfig: {
-		...
-	}
-	validationBackend: () => ({ user: true }),
-	redirectFuncFrontend: (status, location) => goto(location),
-	errorFuncFrontend: (status, body) => console.log('Auth Error : ', { status, body })
+  routeConfig: {
+    // ... route config
+  },
+  validationBackend: () => ({ user: true }),
+  redirectFuncFrontend: (status, location) => goto(location),
+  errorFuncFrontend: (status, body) => console.log('Auth Error : ', { status, body })
 });
-
 ```
 
-## API
+## Type Safety
 
-### skGuard
+skGuard is built with TypeScript and provides comprehensive type safety:
 
-The main function of skGuard. It takes in a configuration object and returns a function to guard routes.
-
-#### Route Config
-
-The route configuration object defines the route behavior for all routes that the route guard is to be used for. This is an object where the keys are the route name (including hidden routes, and layout groups, i.e. /blog/(primary)/view/[id]/ would be used rather than /blog/view/1234). Within each object item, there is the following functionality:
-
-- check function : This takes in the output of the validation functionality, and will return undefined if access is allowed, or a url address that the user will be redirected to if not.
-- POSTCheck : This is an object of different POST endpoints which can be individually checked. If the specific POST address is not found, then the "default" item will be used. This returns undefined for authorized, and any text will be returned as an error message.
-
-```typescript
-// Example route config (simple)
-routeConfig: {
-	'/users/[id]': {
-		check: ({user}) => user ?   undefined : "/login",
-		POSTCheck: {
-			default: ({user}) => user.admin ? undefined : "Access Denied"
-		}
-	}
-}
-```
-
-Because the routeConfig is a Javascript object, it is possible to define specific filtering as a function and re-use the same functionality across multiple routes.
-
-#### Parameters
-
-- routeConfig: Configuration object defining checks for each route. Uses type `RouteConfigObject`.
-- validationBackend: Function to produces the validation data that the functions in the routeConfig will be checked against. This provides access to the request information, including locals. If items such as database access are necessary, then these may be included into the function.
-- allowList: (Optional) List of routes that should always be allowed (array of strings). Note that allowList overrides blockList if the same route appears in both.
-- blockList: (Optional) List of routes that should always be blocked (array of strings). Note that allowList overrides blockList if the same route appears in both.
-- defaultAllow: (Optional) Default behavior when a route is not found in the config (true to allow, false to block).
-- defaultBlockTarget: (Optional) Default redirect target when a route is not found or in the blockList.
-- routeNotFoundMessage: (Optional) Error message when a route is not found in the config.
-- defaultAllowPOST: (Optional) Default behavior for POST requests when not explicitly configured.
-- postNotAllowedMessage: (Optional) Error message for disallowed POST requests.
-- redirectFuncBackend: (Optional) Function called whenever a redirect is required in the backend logic. By default this uses the sveltekit redirection function.
-- errorFuncBackend: (Optional) Function called whenever a route is not found, and there is no default redirect location. This is called for every error in a POST request as redirects are not valid.
-- redirectFuncFrontend: (Optional) Function used in client load function or .svelte file when a redirect is required. If either of these frontend use cases are utilized, then a redirect will not work unless these are customized, the default functionality is to log the redirect.
-- errorFuncFrontend: (Optional) Functionality when an error is received in the frontend. Defaults to console logging the errors, but it is likely that a user of this would need to configure different behavior.
+- Route configuration is type-checked against your validation data
+- Custom validation functions are properly typed with your validation data type
+- Error handling functions receive proper status code types
+- Generic type constraints ensure type safety across the library
 
 ## Contributing
 
